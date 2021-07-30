@@ -8,7 +8,9 @@ from ffpyplayer.player import MediaPlayer
 
 
 def __newBufferVideo(file):
-    return [cv2.VideoCapture(file), MediaPlayer(file)]
+    tmp = MediaPlayer(file)
+    tmp.set_pause(True)
+    return [cv2.VideoCapture(file), tmp]
 
 
 def __playSingleVideo(file):
@@ -29,11 +31,19 @@ def __playSingleVideo(file):
             img, t = audio
             time.sleep(val)
 
+    
+def __fetchBuffer(queue, buffer):
+    while True:
+        if len(buffer) < 3 and not queue:
+            buffer.append(__newBufferVideo(queue[0]))
+
+        time.sleep(1)
+
 
 def player(file, eof, queue):
     buffer = []
 
-    buffer.append(__newBufferVideo(queue[0]))
+    threading.Thread(target=__fetchBuffer, args=[queue, buffer])
 
     while True:
         buf = buffer.pop(0)
