@@ -7,6 +7,10 @@ name = "pypi"
 moviepy = "*"
 ffmpeg = "*"
 pygame = "*"
+ffpyplayer = "*"
+opencv-python = "*"
+numpy = "*"
+pynput = "*"
 
 [dev-packages]
 
