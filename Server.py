@@ -77,6 +77,9 @@ while alive:
     elif command[0] == "quit":
         alive = False
 
+    else:
+        CONN.sendall(b"Invalid Command")
+
 
 CONN.close()
 
