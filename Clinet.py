@@ -1,4 +1,7 @@
+import time
 import socket
+import player
+import threading
 
 
 IP = "127.0.0.1"
@@ -21,14 +24,38 @@ while True:
     print(f"[Server] {respond}")
 
     if _command[0] == "play" and respond == b"File found":
-        length = CONN.recv(1024)
+        # length = CONN.recv(1024) # fetch the sections' length
         index = 1
+        isSent = True
+        queue = []
+        eof = []
+
+        playerThread = threading.Thread(target=player.player, args=[_command[1], eof, queue])
+        playerThread.start()
 
         CONN.sendall(b"req")
-        while (data := CONN.recv(5*1024*1024)) != b"EOF":
-            with open(f"{index}.mp4", "wb") as f:
-                f.write(data)
-                index += 1
+        while 1:
+            if isSent:
+                isSent = False
+                file = f"{index}.mp4"
+                data = CONN.recv(5*1024*1024)
 
-            CONN.sendall(b"req")
+                if data == b"eof": break
+
+                with open(file, "wb") as f:
+                    f.write(data)
+                    queue.append(file)
+                    index += 1
+
+            else:
+                time.sleep(0.5)
+
+            if len(queue) < 3:
+                CONN.sendall(b"req")
+                isSent = True
+
+        else:
+            eof.append(1)
+
+        playerThread.join()
 

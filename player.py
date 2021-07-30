@@ -68,9 +68,10 @@ def player(file, eof, queue):
                 img, t = audio
                 time.sleep(val)
 
-        # os.remove(buf[2]) # remove the played file from clinet
-    
         buf[0].release()
+        buf[1].close_player()
+        os.remove(buf[2]) # remove the played file from clinet
+    
         if not queue and eof and not buffer: break
 
     fetchingThread.join()

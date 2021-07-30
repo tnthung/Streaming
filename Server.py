@@ -44,9 +44,9 @@ while alive:
             threading.Thread(target=split.splitVideo, args=(command[1], flag)).start()
             # split.splitVideo(command[1], returnList=flag)
 
-            while True:
+            while True: # tell clinet the sections' length
                 if flag[0] > 0:
-                    CONN.sendall(flag[0])
+                    CONN.sendall(str(flag[0]).encode())
                     break
             
                 time.sleep(0.5)
@@ -65,7 +65,7 @@ while alive:
                 time.sleep(0.5)
 
             CONN.recv(1024)
-            CONN.sendall(b"EOF")
+            CONN.sendall(b"eof")
 
 
     elif command[0] == "quit":
