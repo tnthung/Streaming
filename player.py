@@ -4,7 +4,7 @@ import time
 import threading
 
 from ffpyplayer.player import MediaPlayer
-
+ 
 
 def __newBufferVideo(file):
     tmp = MediaPlayer(file)
