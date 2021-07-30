@@ -19,6 +19,7 @@ alive = True
 CONN, ADDR = serverSocket.accept()
 
 # tell connected
+print("[System] Connected")
 CONN.sendall(b"Connected")
 
 
@@ -60,6 +61,7 @@ while alive:
                     with open(command[1][:-4]+f"{index}.mp4", "rb") as f:
                         CONN.sendall(f.read())
                         index += 1
+                    # os.remove(command[1][:-4]+f"{index}.mp4")
 
                     if flag[0] == flag[1] == index-1:
                         break
@@ -69,6 +71,8 @@ while alive:
             CONN.recv(1024)
             CONN.sendall(b"eof")
 
+    elif command[0] == "Hello":
+        CONN.sendall(b"Hi there")
 
     elif command[0] == "quit":
         alive = False

@@ -11,7 +11,7 @@ CONN = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 CONN.connect((IP, PORT))
 
 # tell if connected
-print(CONN.recv(1024))
+print(CONN.recv(1024).decode())
 
 while True:
     command = input(": ")
@@ -21,7 +21,7 @@ while True:
     if command == "quit": break
 
     respond = CONN.recv(1024) # recv respond
-    print(f"[Server] {respond}")
+    print(f"[Server] {respond.decode()}\n")
 
     if _command[0] == "play" and respond == b"File found":
         # length = CONN.recv(1024) # fetch the sections' length
