@@ -40,7 +40,9 @@ while True:
                 file = f"{index}.mp4"
                 data = CONN.recv(5*1024*1024)
 
-                if data == b"eof": break
+                if data == b"eof": 
+                    eof.append(1)
+                    break
 
                 with open(file, "wb") as f:
                     f.write(data)
@@ -53,9 +55,6 @@ while True:
             if len(queue) < 3:
                 CONN.sendall(b"req")
                 isSent = True
-
-        else:
-            eof.append(1)
 
         playerThread.join()
 

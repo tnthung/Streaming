@@ -14,6 +14,7 @@ def __newBufferVideo(file):
 
 def __playSingleVideo(file):
     buf = __newBufferVideo(file)
+    buf[1].set_pause(False)
 
     while True:
         grabbed, frame = buf[0].read()
@@ -78,35 +79,6 @@ def player(file, eof, queue):
 
 
 if __name__ == '__main__':
-    # __playSingleVideo('5.mp4')
-
-    from random import randint
-
-    eof = []
-    queue = []
-
-    t = threading.Thread(target=player, args=["testVideo", eof, queue])
-    t.start()
-
-    def tmp(queue, eof):
-        while not eof:
-            print(queue)
-            time.sleep(0.5)
-
-    p = threading.Thread(target=tmp, args=[queue, eof])
-    p.start()
-
-    i = iter([i for i in range(1, 14)])
-    while 1:
-        if len(queue) < 3: 
-            tmp = next(i)
-            queue.append(f"{tmp}.mp4")
-            if tmp == 13: break
-
-        time.sleep(randint(1, 5))
-
-    eof.append(1)
-
-    t.join()
-    p.join()
+    __playSingleVideo('testVideo3.mp4')
+    
 

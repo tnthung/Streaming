@@ -44,12 +44,14 @@ while alive:
             threading.Thread(target=split.splitVideo, args=(command[1], flag)).start()
             # split.splitVideo(command[1], returnList=flag)
 
+            '''
             while True: # tell clinet the sections' length
                 if flag[0] > 0:
                     CONN.sendall(str(flag[0]).encode())
                     break
             
                 time.sleep(0.5)
+            '''
 
             while True:
                 if flag[1] >= 1 and index <= flag[1] :

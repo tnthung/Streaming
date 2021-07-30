@@ -72,7 +72,8 @@ def player(file, eof, queue):
         buf[1].close_player()
         os.remove(buf[2]) # remove the played file from clinet
     
+        # print(f"{not queue=}, {eof=}, {not buffer=}")
         if not queue and eof and not buffer: break
 
-    fetchingThread.join()
     cv2.destroyAllWindows()
+    fetchingThread.join()
