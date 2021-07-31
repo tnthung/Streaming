@@ -1,2 +1,2 @@
 START "Server" pipenv run python server.py
-START "Clinet" pipenv run python clinet.py
+START "Client" pipenv run python client.py
