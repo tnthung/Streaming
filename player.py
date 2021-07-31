@@ -41,7 +41,7 @@ def __fetchBuffer(queue, eof, buffer):
 
 
 def __releaseResource(played):
-    print(played[2] if played else "None")
+    # print(played[2] if played else "None")
 
     if played:
         played[0].release()
