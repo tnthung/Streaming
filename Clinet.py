@@ -1,60 +1,62 @@
 import time
-import socket
 import player
 import threading
 
+import TCP.Clinet as Clinet
 
-IP = "127.0.0.1"
-PORT = 8080
 
-CONN = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-CONN.connect((IP, PORT))
+myClinet = Clinet.Clinet()
 
-# tell if connected
-print(CONN.recv(1024).decode())
 
-while True:
-    command = input(": ")
-    _command = command.split(" ")
+@myClinet.addMode("Hello")
+def sayHello(conn, command):
+    conn.sendall(command.bytes)
+    myClinet.announce(conn.recv(1024), As="Server")
 
-    CONN.sendall(command.encode()) # send command
-    if command == "quit": break
+@myClinet.addMode("QUIT")
+def quitServer(*args):
+    myClinet.end()
 
-    respond = CONN.recv(1024) # recv respond
-    print(f"[Server] {respond.decode()}\n")
+@myClinet.addMode("play")
+def play(conn, command):
+    conn.sendall(command.bytes)
+    respond = conn.recv(1024)
+    myClinet.announce(respond, As="Server")
 
-    if _command[0] == "play" and respond == b"File found":
-        # length = CONN.recv(1024) # fetch the sections' length
-        index = 1
-        isSent = True
-        queue = []
-        eof = []
+    if respond == b"No video found": return
 
-        playerThread = threading.Thread(target=player.player, args=[_command[1], eof, queue])
-        playerThread.start()
+    index = 1
+    isSent = True
+    queue = []
+    eof = []
 
-        CONN.sendall(b"req")
-        while 1:
-            if isSent:
-                isSent = False
-                file = f"{index}.mp4"
-                data = CONN.recv(5*1024*1024)
+    playerThread = threading.Thread(target=player.player, args=[command.split[1], eof, queue])
+    playerThread.start()
 
-                if data == b"eof": 
-                    eof.append(1)
-                    break
+    conn.sendall(b"req")
+    while 1:
+        if isSent:
+            isSent = False
+            file = f"{index}.mp4"
+            data = conn.recv(5*1024*1024)
 
-                with open(file, "wb") as f:
-                    f.write(data)
-                    queue.append(file)
-                    index += 1
+            if data == b"eof": 
+                eof.append(1)
+                break
 
-            else:
-                time.sleep(0.5)
+            with open(file, "wb") as f:
+                f.write(data)
+                queue.append(file)
+                index += 1
 
-            if len(queue) < 3:
-                CONN.sendall(b"req")
-                isSent = True
+        else:
+            time.sleep(0.5)
 
-        playerThread.join()
+        if len(queue) < 1:
+            conn.sendall(b"req")
+            isSent = True
 
+    playerThread.join()
+
+
+myClinet.start()

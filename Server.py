@@ -1,85 +1,70 @@
-import socket
 import os
-import threading
 import time
+import json
 import split
+import threading
+
+import TCP.Server as Server
 
 
-IP = "127.0.0.1"
-PORT = 8080
-
-serverSocket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-serverSocket.bind((IP, PORT))
-serverSocket.listen(10)
-
-print(f"Listening {IP=}, {PORT=}")
+myServer = Server.Server()
 
 
-alive = True
-CONN, ADDR = serverSocket.accept()
+@myServer.addClinetFunction("Hello")
+def sayHello(conn, ip, msg=""):
+    conn.sendall(b"Hi " + msg.encode() + b"!")
 
-# tell connected
-print("[System] Connected")
-CONN.sendall(b"Connected")
+@myServer.addClinetFunction("play")
+def playVideo(conn, ip, video=""):
+    if not os.path.exists(video): 
+        conn.sendall(b"No video found")
+        return
 
+    fileStatus = {}
+    conn.sendall(b"Start playing " + video.encode())
+    index = 1
+    flag = [
+        0, # total part
+        0, # current have
+    ]
 
-while alive:
-    command = CONN.recv(1024).decode().split(" ") # catch command
-    print(f"[Clinet] {command=}")
+    if os.path.exists("Video.json"):
+        with open("Video.json", "r") as f: fileStatus = json.load(f)
 
-    if command[0] == "play":
-        if len(command) != 2:
-            CONN.sendall(b"Wrong command")
-
-        elif not os.path.exists(command[1]):
-            CONN.sendall(b"File not found")
-
-        else:
-            CONN.sendall(b"File found")
-            index = 1
-            flag = [
-                0, # total part
-                0, # current have
-            ]
-
-            threading.Thread(target=split.splitVideo, args=(command[1], flag)).start()
-            # split.splitVideo(command[1], returnList=flag)
-
-            '''
-            while True: # tell clinet the sections' length
-                if flag[0] > 0:
-                    CONN.sendall(str(flag[0]).encode())
-                    break
-            
-                time.sleep(0.5)
-            '''
-
-            while True:
-                if flag[1] >= 1 and index <= flag[1] :
-                    CONN.recv(1024)
-                    
-                    with open(command[1][:-4]+f"{index}.mp4", "rb") as f:
-                        CONN.sendall(f.read())
-                        index += 1
-                    # os.remove(command[1][:-4]+f"{index}.mp4")
-
-                    if flag[0] == flag[1] == index-1:
-                        break
-
-                time.sleep(0.5)
-
-            CONN.recv(1024)
-            CONN.sendall(b"eof")
-
-    elif command[0] == "Hello":
-        CONN.sendall(b"Hi there")
-
-    elif command[0] == "quit":
-        alive = False
-
+    if (tmp := fileStatus.get(video, None)) is not None: flag = tmp
     else:
-        CONN.sendall(b"Invalid Command")
+        threading.Thread(target=split.splitVideo, args=(video, flag)).start()
+
+    while True:
+        if flag[1] >= 1 and index <= flag[1] :
+            fileStatus[video] = [flag[0]] * 2
+            conn.recv(1024)
+            
+            with open(video[:-4]+f"{index}.mp4", "rb") as f:
+                conn.sendall(f.read())
+                index += 1
+            # os.remove(command[1][:-4]+f"{index}.mp4")
+
+            if flag[0] == flag[1] == index-1:
+                break
+
+        time.sleep(1)
+
+    with open("Video.json", "w") as f: json.dump(fileStatus, f)
+
+    conn.recv(1024)
+    conn.sendall(b"eof")
+
+@myServer.addServerFunction("QUIT")
+def quitServer(*args):
+    myServer.end()
+
+@myServer.addServerFunction("list")
+def listClinet(*args):
+    print(f"Total of {len(myServer.CONN)} connections.\n")
+
+    for i, j in enumerate(myServer.CONN):
+        print(i, j[1])
 
 
-CONN.close()
-
+myServer.start()
