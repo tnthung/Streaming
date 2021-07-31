@@ -4,7 +4,7 @@ import socket
 from .Common import Command
 
 
-class Clinet(object):
+class Client(object):
     def __init__(self, IP="127.0.0.1", PORT=8080):
         self.IP = IP
         self.PORT = PORT

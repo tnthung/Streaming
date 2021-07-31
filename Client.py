@@ -2,26 +2,26 @@ import time
 import player
 import threading
 
-import TCP.Clinet as Clinet
+import TCP.Client as Client
 
 
-myClinet = Clinet.Clinet()
+myClient = Client.Client()
 
 
-@myClinet.addMode("Hello")
+@myClient.addMode("Hello")
 def sayHello(conn, command):
     conn.sendall(command.bytes)
-    myClinet.announce(conn.recv(1024), As="Server")
+    myClient.announce(conn.recv(1024), As="Server")
 
-@myClinet.addMode("QUIT")
+@myClient.addMode("QUIT")
 def quitServer(*args):
-    myClinet.end()
+    myClient.end()
 
-@myClinet.addMode("play")
+@myClient.addMode("play")
 def play(conn, command):
     conn.sendall(command.bytes)
     respond = conn.recv(1024)
-    myClinet.announce(respond, As="Server")
+    myClient.announce(respond, As="Server")
 
     if respond == b"No video found": return
 
@@ -59,4 +59,4 @@ def play(conn, command):
     playerThread.join()
 
 
-myClinet.start()
+myClient.start()
