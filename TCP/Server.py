@@ -106,6 +106,10 @@ class Server(object):
         self.GLOBALEXIT = True
         while self.CONN:
             self.CONN.pop(0)[0].close()
+        
+        end = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        end.connect((self.IP, self.PORT))
+        end.close()
 
 
 if __name__ == "__main__":
