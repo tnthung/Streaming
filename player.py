@@ -40,8 +40,20 @@ def __fetchBuffer(queue, eof, buffer):
         time.sleep(0.5)
 
 
+def __releaseResource(played):
+    print(played[2] if played else "None")
+
+    if played:
+        played[0].release()
+        played[1].close_player()
+        
+        # remove the played file from clinet
+        os.remove(played[2])
+
+
 def player(file, eof, queue):
     buffer = []
+    played = None
     fetchingThread = threading.Thread(target=__fetchBuffer, args=[queue, eof, buffer])
     fetchingThread.start()
 
@@ -50,9 +62,14 @@ def player(file, eof, queue):
             time.sleep(0.1)
             continue
 
-        buf = buffer.pop(0)
-        buf[1].set_pause(False)
+        # threading.Thread(target=__releaseResource, args=[played]).start()
+        __releaseResource(played)
+        if not queue and eof and not buffer: break
 
+        buf = buffer.pop(0)
+        # time.sleep(0.5)
+        buf[1].set_pause(False)
+            
         while True:
             grabbed, frame = buf[0].read()
             audio  , val   = buf[1].get_frame()
@@ -67,13 +84,7 @@ def player(file, eof, queue):
             else:
                 img, t = audio
                 time.sleep(val)
-
-        buf[0].release()
-        buf[1].close_player()
-        os.remove(buf[2]) # remove the played file from clinet
-    
-        # print(f"{not queue=}, {eof=}, {not buffer=}")
-        if not queue and eof and not buffer: break
+        played = buf
 
     cv2.destroyAllWindows()
     fetchingThread.join()
