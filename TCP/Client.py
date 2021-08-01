@@ -1,45 +1,47 @@
-import pickle
-import socket
+import pickle as pkl
+import socket as skt
 
-from .Common import Command
+from .Common import *
 
 
-class Client(object):
-    def __init__(self, IP="127.0.0.1", PORT=8080):
-        self.IP = IP
-        self.PORT = PORT
-        self.__alive = True
-
-        self.mode = {}
-    
-    # Print formated message
-    @staticmethod
-    def announce(msg, As="System"):
-        print(f"[{As}]", (msg if type(msg) != bytes else msg.decode()))
-
+class Client:
+    def __init__(self, IP='127.0.0.1', PORT=8080):
+        self.__IP = IP
+        self.__PORT = PORT
+        
+        self.__run = 0
+        self.__mode = {}
+        
     def addMode(self, key):
         def decorator(func):
-            self.mode[key] = func
-
+            self.__mode[key] = func
+            return func
+            
         return decorator
-
+        
     def start(self):
-        self.CONN = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.CONN.connect((self.IP, self.PORT))
-        self.announce(self.CONN.recv(10240))
-
-        while self.__alive:
-            command = Command(input("> "))
-            command.bytes = pickle.dumps(command)
-
-            if (tmp := self.mode.get(command.split[0], None)) is not None:
-                tmp(self.CONN, command)
-                continue
-
-            self.announce("Command not found")
-
-        self.CONN.close()
-
+        pass
+        
     def end(self):
-        self.CONN.sendall(pickle.dumps("__END__"))
-        self.__alive = False
+        if self.__run:
+            self.__run = 0
+            self.send("__END__")
+        
+    @staticmethod
+    def announce(msg, From="System"):
+        msg = msg if type(msg) != bytes else msg.decode()
+        print(f"[{From}]", msg)
+        
+    def send(self, obj):
+        self.__CONN.sendall(pkl.dumps(obj))
+        
+    def recv(self, raw=False, buffer=1024):
+        data = b""
+        
+        while 1:
+            tmp = self.__CONN.recv(buffer)
+            data += tmp
+            
+            if len(tmp) < buffer: break
+            
+        return data.encode() if raw else data
