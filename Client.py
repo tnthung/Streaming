@@ -9,21 +9,18 @@ myClient = Client.Client()
 
 
 @myClient.addMode("Hello")
-def sayHello(conn, command):
-    conn.sendall(command.bytes)
-    myClient.announce(conn.recv(1024), As="Server")
+def sayHello(command):
+    myClient.sendObj(command)
+    myClient.announce(myClient.recv(1024), "Server")
 
 @myClient.addMode("QUIT")
 def quitServer(*args):
     myClient.end()
 
 @myClient.addMode("play")
-def play(conn, command):
-    conn.sendall(command.bytes)
-    respond = conn.recv(1024)
-    myClient.announce(respond, As="Server")
-
-    if respond == b"No video found": return
+def play(command):
+    myClient.sendObj(command)
+    if myClient.announceRespond() == "No video found": return
 
     index = 1
     isSent = True
@@ -33,12 +30,12 @@ def play(conn, command):
     playerThread = threading.Thread(target=player.player, args=[command.split[1], eof, queue])
     playerThread.start()
 
-    conn.sendall(b"req")
+    myClient.send(b"req")
     while 1:
         if isSent:
             isSent = False
             file = f"{index}.mp4"
-            data = conn.recv(5*1024*1024)
+            data = myClient.recv(5*1024*1024)
 
             if data == b"eof": 
                 eof.append(1)
@@ -53,7 +50,7 @@ def play(conn, command):
             time.sleep(0.5)
 
         if len(queue) < 1:
-            conn.sendall(b"req")
+            myClient.send(b"req")
             isSent = True
 
     playerThread.join()

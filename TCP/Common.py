@@ -13,4 +13,12 @@ class Command:
     @property
     def split(self):
         return self.__split
+
+    @property
+    def name(self):
+        return self.__split[0]
+
+    @property
+    def args(self):
+        return self.__split[1:]
         

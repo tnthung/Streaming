@@ -1,116 +1,164 @@
-import time
-import pickle
-import socket
-import threading
+import time as t
+import pickle as pkl
+import socket as skt
+import threading as th
 
-from .Common import Command
+from .Common import *
 
 
-class Server(object):
+class Server:
     def __init__(self, IP="127.0.0.1", PORT=8080, listenFor=10):
-        self.IP = IP                # IP address
-        self.CONN = []              # All connections
-        self.PORT = PORT            # Port listen on
-        self.listenFor = listenFor  # Maximum number of clinet will be accepted
-        self.GLOBALEXIT = False     # Global exit status for all thread
-        self.clinetFunc = {}        # Functions with repective command for clinet
-        self.serverFunc = {}        # Functions with repective command for server
+        self.__IP = IP                # IP address
+        self.__CONN = []              # All connections
+        self.__PORT = PORT            # Port listen on
+        self.__listenFor = listenFor  # Maximum number of clinet will be accepted
+        self.__GLOBALEXIT = False     # Global exit status for all thread
+        self.__clinetFunc = {}        # Functions with repective command for clinet
+        self.__serverFunc = {}        # Functions with repective command for server
 
-        # Core threads to start
-        self.coreThreads = [
-            threading.Thread(target=self.__makeConnection), # Making Connections
+        self.__coreThreads = [
+            th.Thread(target=self.__makeConnection), # Making connections
         ]
 
     # Threading - core
     def __makeConnection(self):
         # Keep accept til number of connection exceeded
-        while not self.GLOBALEXIT and len(self.CONN) < self.listenFor:
-            conn = self.Socket.accept()
-            self.CONN.append(conn)
+        while not self.__GLOBALEXIT and len(self.__CONN) < self.__listenFor:
+            conn = self.__Socket.accept() # (Socket, IP) of new connection
+            self.__CONN.append(conn)      # Append into connection pool
 
-            conn[0].sendall(b"Connected",)
-            self.announce("Connected")
-            threading.Thread(target=self.__listenClientCommand, args=[conn]).start()
+            self.send(conn, b"Connected")
+            self.announce(f"Connected to {conn[1][0]}:{conn[1][1]}")
+            th.Thread(target=self.__listenClientCommand, args=[conn]).start()
 
-            time.sleep(0.1) # Cooldown
+            t.sleep(0.1) # Cooldown
 
     # Threading - each connection
     def __listenClientCommand(self, conn):
         # Forever listening
-        while not self.GLOBALEXIT:
-            command = pickle.loads(conn[0].recv(10240))
+        while not self.__GLOBALEXIT:
+            command = self.recvObj(conn)
 
             if command == "__END__":
                 conn[0].close()
-                self.__removeConnection(conn)
+                self.__CONN.remove(conn)
                 break
 
-            self.announce(command.raw, As=f"Clinet: {conn[1]}")
+            self.announce(command.raw, f"Clinet: {conn[1][0]}:{conn[1][1]}")
 
-            if (tmp := self.clinetFunc.get(command.split[0], None)) is not None:
-                self.announce(command.raw, As="DEBUG")
-                try:              tmp(*conn, *command.split[1:])
-                except TypeError: conn[0].sendall(b"Wrong syntax")
+            if (tmp := self.__clinetFunc.get(command.name, None)) is not None:
+                # self.announce(command.raw, "DEBUG")
+                try:              tmp(conn, *command.args)
+                except TypeError: self.send(conn, b"Wrong syntax")
 
-            else: conn[0].sendall(b"Command not found")
+            else: self.send(conn, b"Command not found")
 
-            time.sleep(0.1) # Cooldown
-
-    # Remove disconnected socket
-    def __removeConnection(self, conn):
-        for i, j in enumerate(self.CONN):
-            if j[1] == conn[1]:
-                self.CONN.pop(i)
-                break        
-
-    # Print formated message
-    @staticmethod
-    def announce(msg, As="System"):
-        print(f"[{As}]", (msg if type(msg) != bytes else msg.decode()))
+            t.sleep(0.1) # Cooldown
 
     # Add function for clinet command to call
     def addClinetFunction(self, key):
         def decorator(func):
-            self.clinetFunc[key] = func
+            self.__clinetFunc[key] = func
 
         return decorator
 
     # Add function for server command to call
     def addServerFunction(self, key):
         def decorator(func):
-            self.serverFunc[key] = func
+            self.__serverFunc[key] = func
 
         return decorator
 
+    # Start Server
     def start(self):
-        self.Socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        self.Socket.bind((self.IP, self.PORT))
-        self.Socket.listen(self.listenFor)
+        self.__Socket = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
+        self.__Socket.bind((self.__IP, self.__PORT))
+        self.__Socket.listen(self.__listenFor)
 
-        for i in self.coreThreads: i.start() # Start all core threads
+        for i in self.__coreThreads: i.start() # Start all core threads
 
-        while not self.GLOBALEXIT:
-            command = input("> ").split(" ")
-            if (tmp := self.serverFunc.get(command[0], None)) is not None:
-                try:              tmp(*command[1:])
-                except TypeError: self.announce(b"Wrong syntax", As="Server")
+        while not self.__GLOBALEXIT:
+            command = Command(input("> "))
+            if (tmp := self.__serverFunc.get(command.name, None)) is not None:
+                try:              tmp(*command.args)
+                except TypeError: self.announce(b"Wrong syntax")
 
-            else: self.announce(b"Command not found", As="Server")
+            else: self.announce(b"Command not found")
 
-            time.sleep(0.1) # Cooldown
+            t.sleep(0.1) # Cooldown
 
-        for i in self.coreThreads: i.join()  # Wait for all core threads finished
+        for i in self.__coreThreads: i.join()  # Wait for all core threads finished
             
-
+    # Kill Server
     def end(self):
-        self.GLOBALEXIT = True
-        while self.CONN:
-            self.CONN.pop(0)[0].close()
+        self.__GLOBALEXIT = True
+        while self.__CONN:
+            self.__CONN.pop(0)[0].close()
         
-        end = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        end.connect((self.IP, self.PORT))
+        end = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
+        end.connect((self.__IP, self.__PORT))
         end.close()
 
+    # Announce msg to Client console
+    @staticmethod
+    def announce(msg, From="System"):
+        msg = msg if type(msg) != bytes else msg.decode()
+        print(f"[{From}]", msg)
 
-if __name__ == "__main__":
-    Server().start()
+    # Announce respond
+    def announceRespond(self, conn):
+        tmp = self.recv(conn).decode()
+        self.announce(tmp, "Server") 
+        return tmp
+
+    # Send pickled obj
+    def sendObj(self, conn, obj):
+        conn[0].sendall(pkl.dumps(obj))
+
+    # Send raw obj
+    def send(self, conn, obj):
+        conn[0].sendall(obj)
+
+    # Receive pickled obj
+    def recvObj(self, conn, bufferSize=32768):
+        data = b""
+        
+        while 1:
+            tmp = conn[0].recv(bufferSize)
+            data += tmp
+            
+            if len(tmp) < bufferSize: break
+            
+        return pkl.loads(data)
+
+    # Receive raw obj
+    def recv(self, conn, bufferSize=32768):
+        data = b""
+        
+        while 1:
+            tmp = conn[0].recv(bufferSize)
+            data += tmp
+            
+            if len(tmp) < bufferSize: break
+            
+        return data
+
+    # Fetch IP
+    @property
+    def IP(self):
+        return self.__IP
+
+    # Fetch PORT
+    @property
+    def PORT(self):
+        return self.__PORT
+
+    # Fetch CONN
+    @property
+    def connections(self):
+        return self.__CONN
+
+    # Fetch maximum connections
+    @property
+    def maxConnection(self):
+        return self.__listenFor
