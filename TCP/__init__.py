@@ -1,4 +1,4 @@
 __all__ = [
     "Server.py",
-    "Clinet.py"
+    "Client.py"
 ]

@@ -11,9 +11,9 @@ class Server:
         self.__IP = IP                # IP address
         self.__CONN = []              # All connections
         self.__PORT = PORT            # Port listen on
-        self.__listenFor = listenFor  # Maximum number of clinet will be accepted
+        self.__listenFor = listenFor  # Maximum number of client will be accepted
         self.__GLOBALEXIT = False     # Global exit status for all thread
-        self.__clinetFunc = {}        # Functions with repective command for clinet
+        self.__clientFunc = {}        # Functions with repective command for client
         self.__serverFunc = {}        # Functions with repective command for server
 
         self.__coreThreads = [
@@ -44,9 +44,9 @@ class Server:
                 self.__CONN.remove(conn)
                 break
 
-            self.announce(command.raw, f"Clinet: {conn[1][0]}:{conn[1][1]}")
+            self.announce(command.raw, f"client: {conn[1][0]}:{conn[1][1]}")
 
-            if (tmp := self.__clinetFunc.get(command.name, None)) is not None:
+            if (tmp := self.__clientFunc.get(command.name, None)) is not None:
                 # self.announce(command.raw, "DEBUG")
                 try:              tmp(conn, *command.args)
                 except TypeError: self.send(conn, b"Wrong syntax")
@@ -55,10 +55,10 @@ class Server:
 
             t.sleep(0.1) # Cooldown
 
-    # Add function for clinet command to call
-    def addClinetFunction(self, key):
+    # Add function for client command to call
+    def addclientFunction(self, key):
         def decorator(func):
-            self.__clinetFunc[key] = func
+            self.__clientFunc[key] = func
 
         return decorator
 
@@ -88,13 +88,13 @@ class Server:
             t.sleep(0.1) # Cooldown
 
         for i in self.__coreThreads: i.join()  # Wait for all core threads finished
-            
+
     # Kill Server
     def end(self):
         self.__GLOBALEXIT = True
         while self.__CONN:
             self.__CONN.pop(0)[0].close()
-        
+
         end = skt.socket(skt.AF_INET, skt.SOCK_STREAM)
         end.connect((self.__IP, self.__PORT))
         end.close()
@@ -108,7 +108,7 @@ class Server:
     # Announce respond
     def announceRespond(self, conn):
         tmp = self.recv(conn).decode()
-        self.announce(tmp, "Server") 
+        self.announce(tmp, "Server")
         return tmp
 
     # Send pickled obj
@@ -122,25 +122,25 @@ class Server:
     # Receive pickled obj
     def recvObj(self, conn, bufferSize=32768):
         data = b""
-        
+
         while 1:
             tmp = conn[0].recv(bufferSize)
             data += tmp
-            
+
             if len(tmp) < bufferSize: break
-            
+
         return pkl.loads(data)
 
     # Receive raw obj
     def recv(self, conn, bufferSize=32768):
         data = b""
-        
+
         while 1:
             tmp = conn[0].recv(bufferSize)
             data += tmp
-            
+
             if len(tmp) < bufferSize: break
-            
+
         return data
 
     # Fetch IP

@@ -8,15 +8,15 @@ class Client:
     def __init__(self, IP='127.0.0.1', PORT=8080):
         self.__IP = IP      # IP address
         self.__PORT = PORT  # Port to connect
-        
+
         self.__run = False  # If Client is running
-        self.__mode = {}    # Modes for clinet to handle communication
+        self.__mode = {}    # Modes for client to handle communication
 
     # Add mode for Client to run on
     def addMode(self, key):
         def decorator(func):
             self.__mode[key] = func
-            
+
         return decorator
 
     # Start Client
@@ -47,7 +47,7 @@ class Client:
         if self.__run:
             self.__run = False
             self.sendObj("__END__")
-        
+
     # Announce msg to Client console
     @staticmethod
     def announce(msg, From="System"):
@@ -57,7 +57,7 @@ class Client:
     # Announce respond
     def announceRespond(self):
         tmp = self.recv().decode()
-        self.announce(tmp, "Server") 
+        self.announce(tmp, "Server")
         return tmp
 
     # Send pickled obj
@@ -71,25 +71,25 @@ class Client:
     # Receive pickled obj
     def recvObj(self, bufferSize=32768):
         data = b""
-        
+
         while 1:
             tmp = self.__CONN.recv(bufferSize)
             data += tmp
-            
+
             if len(tmp) < bufferSize: break
-            
+
         return pkl.loads(data)
 
     # Receive raw obj
     def recv(self, bufferSize=32768):
         data = b""
-        
+
         while 1:
             tmp = self.__CONN.recv(bufferSize)
             data += tmp
-            
+
             if len(tmp) < bufferSize: break
-            
+
         return data
 
     # Fetch IP
